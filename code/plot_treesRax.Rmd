@@ -1,0 +1,302 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(ggplot2)
+library(ggstance)
+#library(scatterpie)
+library(plyr)
+library(dplyr)
+library(tidytree)
+library(reshape2)
+library(knitr)
+library(ape)
+library(ggtree)
+#library(cowplot)
+#library(strataG)
+```
+
+
+```{r}
+tree <- read.tree("../analyses/DBout_mac3het7p4R7.min112.BS.treefile")
+MRCA(tree, c("SHB_UFW17868","GLB_10702","TNSPB_04","REB_HatS214","SMB_BUR20") )
+```
+
+```{r}
+tree.root <- root(tree, node = 305, edgelabel = TRUE)
+ufboot <- c(NA,sapply(strsplit(tree.root$node.label[-1],"/"),"[[",2))
+ggplot(tree.root, aes(x, y)) + geom_tree() + theme_tree() + geom_tiplab(size=2) +
+  geom_nodepoint(aes(color=as.numeric(ufboot),subset = !is.na(as.numeric(ufboot)) & as.numeric(ufboot) >=95),color = "red") + geom_nodepoint(aes(color=as.numeric(ufboot),subset = !is.na(as.numeric(ufboot)) & as.numeric(ufboot) >=50 & as.numeric(ufboot) <95),color = "orange")
+
+```
+
+
+```{r}
+qmat <- as.data.frame(read.table("../analyses/allfiltu_qmat.tab",header = T,stringsAsFactors = F))
+colnames(qmat) <- c("id","Opop","Lineage","mean_prob")
+qmat$Lineage <- mapvalues(qmat$Lineage, from=c(1, 2, 3), to=c("NLB", "DLB", "FLB"))
+head(qmat)
+```
+
+Get nodes: https://bioconductor.riken.jp/packages/3.2/bioc/vignettes/ggtree/inst/doc/treeManipulation.html
+
+```{r}
+tree.root$tip.label <- sub("_", "", tree.root$tip.label)
+tree.root$tip.label[which(tree.root$tip.label == "Mill_22")] <- "Mill22"
+y <- qmat[which(qmat$id %in% tree.root$tip.label),]
+```
+
+```{r}
+`%notin%` <- Negate(`%in%`)
+not <- tree.root$tip.label[which(tree.root$tip.label %notin% y$id)]
+not
+
+```
+
+```{r}
+MRCA(tree,tip=c("GLB12050","GLB12048"))
+MRCA(tree,tip=c("GASHB24","GASHB23","SHBUSFWS17868fastq"))
+MRCA(tree,tip=c("TNSPB05","TNSPB04"))
+MRCA(tree,tip=c(tree$tip.label[grep("CAN",tree$tip.label)],tree$tip.label[grep("DB",tree$tip.label)],tree$tip.label[grep("TN1",tree$tip.label)]))
+MRCA(tree,tip=tree$tip.label[grep("SL",tree$tip.label)])
+```
+
+```{r}
+
+p <- ggtree(tree) 
+
+y$Lineage<- as.factor(y$Lineage)
+p2 <- facet_plot(p, panel="Q-values", data = y, geom=geom_barh, 
+                 mapping= aes(x=mean_prob,fill=Lineage),stat='identity',width=1) +theme_tree2(legend.position="left") +
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) ==100),size = 1,color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=50 & as.numeric(label) <100),size = 1,color = "orange") +
+  geom_cladelabel(node=155, label="Guadalupe Bass", align=F,fontsize=4) +
+  geom_cladelabel(node=149, label="Shoal Bass", align=F,fontsize=4) +
+  geom_cladelabel(node=154, label="Spotted Bass", align=F,fontsize=4) 
+  #geom_cladelabel(node=233, label="Delta Bass", align=F,fontsize=3) +
+   # geom_cladelabel(node=286, label="Sugar Lake, MN", align=F,fontsize=3)
+  #ylim(0,150)
+  
+p2
+```
+
+## ND2
+
+```{r}
+x <- read.tree("../../../Mit/ND2/tree/ND2_1stpass_510_outMLTrN_BLroot.newick")
+```
+
+Coloring nodes https://github.com/YuLab-SMU/ggtree/issues/245
+```{r}
+MRCA(x,tip=c("AY517726.1_ApomA"))
+```
+```{r}
+p <- ggplot(x, aes(x, y)) + geom_tree() + theme_tree() + geom_tiplab(size=2) + 
+  #geom_label2(aes(label=label, subset = !is.na(as.numeric(label)) & as.numeric(label) > 0.50))
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) ==1),color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=0.5 & as.numeric(label) <1),color = "orange")
+p
+```
+
+
+```{r}
+x <- drop.tip(x,c("KJ669242.1_REB05","AY517726.1_ApomA","KJ669246.1_ALB39","AY517745.1_LminB","AY225772.1_McooE","AY225773.1_McooG","KJ669247.1_ALB41","KJ669245.1_ALB36"))
+tree2 <- root(x, node = 150, edgelabel = TRUE)
+p <- ggplot(tree2, aes(x, y)) + geom_tree() + theme_tree() + geom_tiplab(size=2) + 
+  #geom_label2(aes(label=label, subset = !is.na(as.numeric(label)) & as.numeric(label) > 0.50))
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) ==1),color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=0.5 & as.numeric(label) <1),color = "orange") 
+p
+```
+
+```{r}
+
+p1 <- ggplot(tree2, aes(x, y),branch.length="none") + geom_tree() + theme_tree() + geom_tiplab(size=2) + 
+  #geom_label2(aes(label=label, subset = !is.na(as.numeric(label)) & as.numeric(label) > 0.50))
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) ==1),color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=0.5 & as.numeric(label) <1),color = "orange")
+#p$data[p$data$node %in% c(149), "x"] <- mean(p$data$x)
+
+#scale_fill_gradientn(colours = RColorBrewer::brewer.pal(3, "YlOrRd"))
+plot_grid(p1, p, ncol=2)
+```
+```{r}
+p <- ggplot(tree2, aes(x, y)) + geom_tree() + theme_tree() + 
+  #geom_label2(aes(label=label, subset = !is.na(as.numeric(label)) & as.numeric(label) > 0.50))
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) ==1),color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=0.5 & as.numeric(label) <1),color = "orange") 
+p
+```
+
+```{r}
+x$tip.label[which(x$tip.label == "NC20332_FL")] <- "NC20332"
+x$tip.label[which(x$tip.label == "MYS1923_FL")] <- "MYS1923"
+x$tip.label[which(x$tip.label == "MYS1933_M")] <- "MYS1933"
+x$tip.label[which(x$tip.label == "ASF20_11")] <- "ASF20_011"
+x$tip.label[which(x$tip.label == "NC20328_FL")] <- "NC20328"
+x$tip.label[which(x$tip.label == "OUAR18145_N")] <- "OUAR18145"
+x$tip.label[which(x$tip.label == "ASF20_005_FL")] <- "ASF20_005"
+x$tip.label[which(x$tip.label == "ASF20_024_FL")] <- "ASF20_024"
+x$tip.label[which(x$tip.label == "MYS19103_M")] <- "MYS19103"
+x$tip.label[which(x$tip.label == "MYS197_M")] <- "MYS197"
+x$tip.label[which(x$tip.label == "NC20341_FL")] <- "NC20341"
+x$tip.label[which(x$tip.label == "MYS1914_M")] <- "MYS1914"
+x$tip.label[which(x$tip.label == "OUAR18229_N")] <- "OUAR18229"
+x$tip.label[which(x$tip.label == "OUAR18134_N")] <- "OUAR18134"
+x$tip.label[which(x$tip.label == "ASF20_001_N")] <- "ASF20_001"
+x$tip.label[which(x$tip.label == "ASF20_003_N")] <- "ASF20_003"
+x$tip.label[which(x$tip.label == "ASF20_007")] <- "ASF20_07"
+x$tip.label[which(x$tip.label == "Matt01")] <- "MATT01"
+x$tip.label[which(x$tip.label == "VA19_810_F1")] <- "VA19_810"
+x$tip.label[which(x$tip.label == "OUAR18203_N")] <- "OUAR18203"
+x$tip.label[which(x$tip.label == "CANOT11830")] <- "CAN11830g"
+x$tip.label[which(x$tip.label == "DB2634")] <- "DB2634g"
+x$tip.label[which(x$tip.label == "CANOT11829")] <- "CAN11829g"
+x$tip.label[which(x$tip.label == "CANOT2617")] <- "CAN2617"
+```
+
+```{r}
+qmat <- read.csv("../../Running_Panel/0219_1005_noreps_pops_FN_jittered.qmat.csv")
+qmat <- qmat[,c("id","NB","DB","FL","Pop")]
+
+y <- qmat[which(qmat$id %in% x$tip.label),]
+mit <- c("F","F","F","F","N","N","N","D","D","D",
+         "N","N","N","N","D","F","ND","N",
+         "F","F","N","N","F","D","ND","N",
+         "F","F","D","F","F","N","F","F",
+         "F","F","F","N","N","N","F","N",
+         "N","N","F","F","N","F","F","F",
+         "F","F","N","N","N","N","D","N",
+         "F","N","F")
+orig.pop <- c("ILB","FLB_NLB_F1","FLB","FLB",rep("NLB",3),rep("DLB",3),rep("ILB",4),"DLB",rep("ILB",16),"NLB",rep("ILB",5),"NLB",rep("ILB",17),"FLB_NLB_F1",rep("ILB",5))
+y <- cbind(y,mit)
+my <- melt(y,id.vars = c("id","Pop","mit"))
+my$variable <- mapvalues(my$variable, from=c("NB","DB", "FL"), to=c("NLB", "DLB", "FLB"))
+```
+```{r}
+# make structur eplot ordered by mit
+y_order <- y[order(mit),]
+colnames(y_order)[6] <- "orig.pop"
+y_order$pct.miss <- rep(0,nrow(y))
+y_order <- y_order[,c("id","pct.miss","orig.pop","NB","DB","FL")]
+structurePlot(y_order,horiz=F,type="bar")
+```
+
+```{r}
+MRCA(x,tip=c("AY225772.1_McooE","AY225773.1_McooG","KJ669246.1_ALB39"))
+MRCA(x,tip=c("AY225763.1_MtreG","AY225762.1_MtreE"))
+MRCA(x,tip=c("AY225778.1_McatF","AY225776.1_McatD","AY225775.1_McatC"))
+MRCA(x,tip=c("AY225755.1_MpunA","KJ669283.1_SPB28"))
+```
+
+
+```{r}
+orig.pop <- c("ILB","FLB_NLB_F1","FLB","FLB",rep("NLB",3),rep("DLB",3),rep("ILB",4),"DLB",rep("ILB",16),"NLB",rep("ILB",5),"NLB",rep("ILB",17),"FLB_NLB_F1",rep("ILB",5))
+d <- tibble(label = y$id,
+            opop = as.factor(y$orig.pop))
+ttib <- as_tibble(x)
+
+ttiby <- full_join(ttib, d, by = 'label')
+xy <- as.treedata(ttiby)
+
+p <- ggtree(xy) +coord_cartesian(clip = 'off') +geom_tippoint(aes(color=opop))
+my$variable <- factor(my$variable,levels=c("DB","FL","NB"))
+
+p2 <- facet_plot(p, panel="Q-values", data = my, geom=geom_barh, 
+                 mapping= aes(x=value,fill=variable),stat='identity',size=1) +theme_tree2(legend.position="left") +
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) ==1),color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=0.5 & as.numeric(label) <1),color = "orange") +
+  geom_tiplab(aes(subset=label=="AY517726.1_ApomA"), label='italic("A. pomosis")',size=2.5,parse=T) +
+    geom_tiplab(aes(subset=label=="AY517745.1_LminB"), label='italic("L. miniatus")',size=3,parse=T) +
+  geom_cladelabel(node=156, label="Redeye and Alabama Bass", align=F,fontsize=2.5) +
+  geom_cladelabel(node=160, label="Guadalupe Bass", align=F,fontsize=2.5) +
+  geom_cladelabel(node=163, label="Shoal Bass", align=F,fontsize=2.5) +
+  geom_cladelabel(node=162, label="Spotted Bass", align=F,fontsize=2.5)
+  
+p2
+```
+
+
+```{r}
+p.bs
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+p <- ggplot(my, aes(x=variable, y=value, fill=variable)) + 
+    geom_boxplot(width=0.5) +
+  geom_jitter(color="black", size=0.4, alpha=0.9, width=0.25)  +
+  facet_wrap(~mit) +
+  ylab("Q-value") + xlab("Lineage")
+p
+```
+
+```{r}
+y <- qmat[which(qmat$id %in% x$tip.label),]
+```
+
+```{r}
+for (i in x$tip.label) {
+  if (i %in% y$id) {
+  png(file=paste0("pies/",i,"_pie.png"),
+width=50, height=50)
+par(omi = c(0,0,0,0), mgp = c(0,0,0), mar = c(0,0,0,0), family = "D")
+pct <- y[which(y$id == i),]
+pct <- melt(pct)
+cols = c("#56B4E9","coral","springgreen")
+pie(pct$value, col=cols,labels = NA,radius = 1)
+dev.off()  
+  }
+  else {
+    png(file=paste0("pies/",i,"_pie.png"),
+width=25, height=25)
+    par(omi = c(0,0,0,0), mgp = c(0,0,0), mar = c(0,0,0,0), family = "D")
+    plot.new()
+dev.off()  
+  }
+}
+```
+```{r}
+png(file="pies/test.png",width=100, height=100)
+plot.new()
+dev.off()
+```
+
+```{r}
+files <- paste0("pies/",x$tip.label,"_pie.png")
+names(files) <- x$tip.label
+pies <- as.data.frame(cbind(as.character(x$tip.label),files))
+colnames(pies) <- c("label","files")
+#p <- ggtree(x) %<+% pies
+ggtree(x) + xlim(0,70)+geom_tiplab(aes(image= paste0('pies/',label,'_pie.png')), geom="image", offset=2, align=2 )
+```
+```{r}
+y <- qmat[which(qmat$id %in% x$tip.label),]
+```
+```{r}
+
+```
+
+```{r}
+p <- ggtree(x)
+p <- p %<+% w 
+wm
+facet_plot(p, panel = "Trait", data = wm, geom = ggstance::geom_barh, 
+                aes(x = "", fill = variable,y=value), 
+                stat = "identity", width = 1)
+```
+```{r}
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).

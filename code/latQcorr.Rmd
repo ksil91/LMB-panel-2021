@@ -1,0 +1,132 @@
+---
+title: "Modeling FLB Ancestry, Geography, and Stocking"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(dplyr)
+library(openxlsx) #save .csv as Excel
+library(GGally)
+library(geosphere) # get great circle distance
+library(aod) #wald test
+```
+
+```{r}
+qmat <- read.csv('../analyses/0219_1207_newRefs_qmat_noreps_final.csv',na.strings = "X")
+qmatf <- filter(qmat, !is.na(longitude))
+qmatM <- qmatf %>% group_by(Pop,latitude,longitude,River.Res) %>%
+          summarise(across(c(NLB,DLB,FLB), ~ mean(.x, na.rm=TRUE)), N = n())
+fl <- qmatf[which(qmatf$Pop=="StJohn_FL"),c("longitude","latitude")][1,]
+circ.dist <- distCosine(fl, qmatM[,c("longitude","latitude")])
+qmatM <- cbind(qmatM,circ.dist/max(circ.dist),circ.dist/1000)
+colnames(qmatM)[9:10] <- c("circ.dist","circ.dist.m")
+#write.xlsx(qmatM,"~/Postdoc_Projects/Delta/My_delta/Running_Panel/0219_1207_newRefs_noreps_meanQvalues_latlong.xlsx")
+```
+## By individual, include FL pure pop 
+### Get great circle distance from FLorida site 
+
+```{r}
+circ.dist <- distCosine(fl, qmatf[,c("longitude","latitude")])
+qmatf <- cbind(qmatf,1-circ.dist/max(circ.dist),circ.dist/1000)
+colnames(qmatf)[16:17] <- c("circ.dist","circ.dist.m")
+```
+
+### Fractional logistic regression -interaction
+
+With scaled distance
+```{r}
+qmatf$River.Res <- factor(qmatf$River.Res,levels = c("Res","River"))
+mylogit.int <- glm(FLB ~ circ.dist * River.Res, data = qmatf, family = "quasibinomial")
+summary(mylogit.int)
+```
+
+```{r}
+mylogit.int <- glm(FLB ~ circ.dist.m * River.Res, data = qmatf, family = "quasibinomial")
+summary(mylogit.int)
+```
+
+```{r}
+wald.test(b = coef(mylogit.int), Sigma = vcov(mylogit.int), Terms = c(3,4))
+```
+
+```{r}
+ggplot(qmatf, aes(x = circ.dist.m, y = FLB,colour=River.Res)) +geom_point() + 
+  geom_smooth(formula = y ~ x, method = 'glm', fullrange=TRUE, method.args=list(family=quasibinomial())) 
+  
+  
+```
+
+## Find distance where Q-valu < 0.06 
+```{r}
+newdata2 <- with(qmatf, data.frame(circ.dist.m = rep(seq(from = 0, to = 2500, length.out = 500),2),
+                                   River.Res = factor(c(rep("River", 500),rep("Res",500)))))
+
+newdata3 <- cbind(newdata2, predict(mylogit.int, newdata = newdata2, type = "link",
+    se = TRUE))
+newdata3 <- within(newdata3, {
+    PredictedProb <- plogis(fit)
+    LL <- plogis(fit - (1.96 * se.fit))
+    UL <- plogis(fit + (1.96 * se.fit))
+})
+ggplot(newdata3, aes(x = circ.dist.m, y = PredictedProb)) + geom_ribbon(aes(ymin = LL,
+    ymax = UL, fill = River.Res), alpha = 0.2) + geom_line(aes(colour = River.Res),
+    size = 1)
+```
+
+#### Less than 0.06 
+River : 916.8337  
+Res: 1352.705 
+
+```{r}
+check <- cbind(qmatM, predict(mylogit.int, newdata = qmatM, type = "link", se = TRUE))
+
+check <- within(check, {
+    PredictedProb <- plogis(fit)
+    LL <- plogis(fit - (1.96 * se.fit))
+    UL <- plogis(fit + (1.96 * se.fit))
+})
+ggplot(check)  + geom_point(aes(x=circ.dist.m,y= FLB,colour=River.Res)) + geom_ribbon(data = newdata3, aes(x= circ.dist.m, y= PredictedProb, ymin = LL,
+    ymax = UL, fill = River.Res), alpha = 0.2) + geom_line(data = newdata3, aes(x = circ.dist.m, y = PredictedProb, colour = River.Res),
+    size = 1)
+```
+
+Check is habitat is changed
+```{r}
+nd <- with(qmatM, data.frame(Pop=Pop, FLB=FLB, circ.dist.m = rep(circ.dist.m,2), River.Res = factor(c(rep("River",nrow(qmatM)),rep("Res",nrow(qmatM)))) ))
+nd$FLB.P <- predict(mylogit.int, newdata = nd, type = "response")
+nd[order(nd$circ.dist.m),]
+
+```
+
+
+## Not taking habitat into account  
+```{r}
+mylogit.int.noH <- glm(FLB ~ circ.dist.m, data = qmatf, family = "quasibinomial")
+summary(mylogit.int.noH)
+```
+
+```{r}
+ggplot(qmatf, aes(x = circ.dist.m, y = FLB)) +geom_point() + 
+  geom_smooth(formula = y ~ x, method = 'glm', fullrange=TRUE, method.args=list(family=quasibinomial()))
+```
+
+```{r}
+anova(mylogit.int.noH,mylogit.int,test='Chisq')
+```
+
+Including habitat type significantly improves fit. 
+
+```{r}
+sessionInfo()
+```
+
