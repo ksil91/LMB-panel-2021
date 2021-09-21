@@ -22,10 +22,11 @@ library(ggtree)
 #library(strataG)
 ```
 
+## With intergrades
 
 ```{r}
-tree <- read.tree("../analyses/DBout_mac3het7p4R7.min112.BS.treefile")
-MRCA(tree, c("SHB_UFW17868","GLB_10702","TNSPB_04","REB_HatS214","SMB_BUR20") )
+tree <- read.tree("../analyses/DBOutv2_mac3het7p4R7.min112.BS.treefile")
+MRCA(tree, c("SHB_UFW17868","GLB_12050","TNSPB_04","REB_HatS214","SMB_BUR20") )
 ```
 
 ```{r}
@@ -56,33 +57,128 @@ y <- qmat[which(qmat$id %in% tree.root$tip.label),]
 `%notin%` <- Negate(`%in%`)
 not <- tree.root$tip.label[which(tree.root$tip.label %notin% y$id)]
 not
-
 ```
 
 ```{r}
-MRCA(tree,tip=c("GLB12050","GLB12048"))
-MRCA(tree,tip=c("GASHB24","GASHB23","SHBUSFWS17868fastq"))
-MRCA(tree,tip=c("TNSPB05","TNSPB04"))
-MRCA(tree,tip=c(tree$tip.label[grep("CAN",tree$tip.label)],tree$tip.label[grep("DB",tree$tip.label)],tree$tip.label[grep("TN1",tree$tip.label)]))
-MRCA(tree,tip=tree$tip.label[grep("SL",tree$tip.label)])
+MRCA(tree.root,tip=c("GLB12050","GLB12048"))
+MRCA(tree.root,tip=c("GASHB24","GASHB23","SHBUFW17868"))
+MRCA(tree.root,tip=c("TNSPB05","TNSPB04"))
+MRCA(tree.root,tip=c("REBHatS213", "REBLCanS13"))
+MRCA(tree.root,tip=c("SMBCAR09","SMBBUR23"))
+MRCA(tree.root,tip=c(tree.root$tip.label[grep("CAN",tree.root$tip.label)],tree.root$tip.label[grep("DB",tree.root$tip.label)],tree.root$tip.label[grep("SIP",tree.root$tip.label)]))
+MRCA(tree.root,tip=c(tree.root$tip.label[grep("SL",tree.root$tip.label)],tree.root$tip.label[grep("REEL",tree.root$tip.label)]))
+```
+```{r}
+ufboot <- c("",sapply(strsplit(tree.root$node.label[-1],"/"),"[[",2))
+hs <- c("",sapply(strsplit(tree.root$node.label[-1],"/"),"[[",1))
+tree.root$node.label <- ufboot 
 ```
 
 ```{r}
 
-p <- ggtree(tree) 
+#tree.root$root.edge <- 118
+p <- ggtree(tree.root) 
 
 y$Lineage<- as.factor(y$Lineage)
-p2 <- facet_plot(p, panel="Q-values", data = y, geom=geom_barh, 
-                 mapping= aes(x=mean_prob,fill=Lineage),stat='identity',width=1) +theme_tree2(legend.position="left") +
-  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) ==100),size = 1,color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=50 & as.numeric(label) <100),size = 1,color = "orange") +
-  geom_cladelabel(node=155, label="Guadalupe Bass", align=F,fontsize=4) +
-  geom_cladelabel(node=149, label="Shoal Bass", align=F,fontsize=4) +
-  geom_cladelabel(node=154, label="Spotted Bass", align=F,fontsize=4) 
+p2 <- facet_plot(p, panel="STRUCTURE results", data = y, geom=geom_barh, 
+                 mapping= aes(x=mean_prob,fill=Lineage),stat='identity',width=1)+
+  theme_tree2(legend.position="left") + theme(legend.title = element_text(size=14),
+  legend.text = element_text(size=10),title = element_text(size=14))+
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) == 100),size = 1,color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=50 & as.numeric(label) <100),size = 1,color = "orange") +
+  geom_cladelabel(node=313, label="Guadalupe Bass", align=F,fontsize=3.5) +
+  geom_cladelabel(node=306, label="Shoal Bass", align=F,fontsize=3.5) +
+  geom_cladelabel(node=314, label="Spotted Bass", align=F,fontsize=3.5) +
+  geom_cladelabel(node=315, label="Redeye Bass", align=F,fontsize=3.5) +
+  geom_cladelabel(node=319, label="Smallmouth Bass", align=F,fontsize=3.5) +
+  geom_rootedge(rootedge=0.005)
+  
   #geom_cladelabel(node=233, label="Delta Bass", align=F,fontsize=3) +
    # geom_cladelabel(node=286, label="Sugar Lake, MN", align=F,fontsize=3)
   #ylim(0,150)
-  
+
 p2
+```
+
+
+## Without intergrades 
+
+```{r}
+tree <- read.tree("../analyses/DBoutPurev2_mac3het7p4R7.min81.BS.treefile")
+MRCA(tree, c("SHB_UFW17868","GLB_12048","TNSPB_04","REB_HatS214","SMB_BUR20") )
+```
+```{r}
+tree.root <- root(tree, node = 167, edgelabel = TRUE)
+ufboot <- c("",sapply(strsplit(tree.root$node.label[-1],"/"),"[[",2))
+hs <- c("",sapply(strsplit(tree.root$node.label[-1],"/"),"[[",1))
+tree.root$node.label <- ufboot 
+```
+
+```{r}
+p <- ggplot(tree.root, aes(x, y)) + geom_tree() + theme_tree() + geom_tiplab(size=2) + 
+  #geom_label2(aes(label=label, subset = !is.na(as.numeric(label)) & as.numeric(label) > 0.50))
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=95),color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=50 & as.numeric(label) <95),color = "orange")
+p
+```
+
+
+```{r}
+qmat <- as.data.frame(read.table("../analyses/allfiltu_qmat.tab",header = T,stringsAsFactors = F))
+colnames(qmat) <- c("id","Opop","Lineage","mean_prob")
+qmat$Lineage <- mapvalues(qmat$Lineage, from=c(1, 2, 3), to=c("NLB", "DLB", "FLB"))
+head(qmat)
+```
+
+Get nodes: https://bioconductor.riken.jp/packages/3.2/bioc/vignettes/ggtree/inst/doc/treeManipulation.html
+
+```{r}
+tree.root$tip.label <- sub("_", "", tree.root$tip.label)
+tree.root$tip.label[which(tree.root$tip.label == "Mill_22")] <- "Mill22"
+y <- qmat[which(qmat$id %in% tree.root$tip.label),]
+```
+
+```{r}
+`%notin%` <- Negate(`%in%`)
+not <- tree.root$tip.label[which(tree.root$tip.label %notin% y$id)]
+not
+```
+
+```{r}
+MRCA(tree.root,tip=c("GLB12050","GLB12048"))
+MRCA(tree.root,tip=c("GASHB24","GASHB23","SHBUFW17868"))
+MRCA(tree.root,tip=c("TNSPB05","TNSPB04"))
+MRCA(tree.root,tip=c("REBHatS213", "REBLCanS13"))
+MRCA(tree.root,tip=c("SMBCAR09","SMBBUR23"))
+MRCA(tree.root,tip=c(tree.root$tip.label[grep("CAN",tree.root$tip.label)],tree.root$tip.label[grep("DB",tree.root$tip.label)],tree.root$tip.label[grep("SIP",tree.root$tip.label)]))
+MRCA(tree.root,tip=c(tree.root$tip.label[grep("SL",tree.root$tip.label)],tree.root$tip.label[grep("REEL",tree.root$tip.label)]))
+```
+
+```{r}
+tree.root$root.edge <- 118
+p <- ggtree(tree.root) 
+
+y$Lineage<- as.factor(y$Lineage)
+p2 <- facet_plot(p, panel="STRUCTURE results", data = y, geom=geom_barh, 
+                 mapping= aes(x=mean_prob,fill=Lineage),stat='identity',width=1)+
+  theme_tree2(legend.position="left") + theme(legend.title = element_text(size=14),
+  legend.text = element_text(size=10),title = element_text(size=14))+
+  geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) == 100),size = 1.5,color = "red") + geom_nodepoint(aes(color=as.numeric(label),subset = !is.na(as.numeric(label)) & as.numeric(label) >=50 & as.numeric(label) <100),size = 1.5,color = "orange") +
+  geom_cladelabel(node=175, label="Guadalupe Bass", align=F,fontsize=4) +
+  geom_cladelabel(node=168, label="Shoal Bass", align=F,fontsize=4) +
+  geom_cladelabel(node=176, label="Spotted Bass", align=F,fontsize=4) +
+  geom_cladelabel(node=177, label="Redeye Bass", align=F,fontsize=4) +
+  geom_cladelabel(node=181, label="Smallmouth Bass", align=F,fontsize=4) +
+  geom_rootedge(rootedge=0.005)
+  
+  #geom_cladelabel(node=233, label="Delta Bass", align=F,fontsize=3) +
+   # geom_cladelabel(node=286, label="Sugar Lake, MN", align=F,fontsize=3)
+  #ylim(0,150)
+
+p2
+```
+
+
+```{r}
+
 ```
 
 ## ND2
