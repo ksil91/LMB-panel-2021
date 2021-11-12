@@ -11,14 +11,17 @@ This repository is intended to facilitate full reproducibility of the paper, as 
 * [figshare repository](https://figshare.com/projects/Complex_introgression_among_three_diverged_largemouth_bass_lineages/125746): VCF files of all filtered SNPs and diagnostic SNPs, Excel file with MassArray genotypes for the 73 SNP panel, input file for maximum likelihood phylogenetic analyses, sample metadata, and output files from Stacks.
 * [NCBI GenBank #NRCINRCI01000000](https://www.ncbi.nlm.nih.gov/nuccore/NRCI00000000.1/): draft *Micropterus floridanus* genome used for mapping of GBS data. 
 
+## \* Documentation in progress
+All of the code used for this project is in the repo, but I'm still in the process of organizing and documenting it so it is of general utility. Feel free to poke around and leave comments, but know it will be much more organized soon! 
+
 ## assembly folder
 Markdown files and shell scripts detailing how to go from raw sequencing data to assembled GBS loci using bowtie and Stacks.
 
 ## code folder
-
+Code to filter SNPs in a variety of ways, convert file formats, identify SNPs that are fixed betweeen different lineages, run population genetic/phylogenetic analyses, make plots in R, and do a little geographical modeling.
 
 ## analysis folder
-
+Input and output files that go with code.
 
 
 
