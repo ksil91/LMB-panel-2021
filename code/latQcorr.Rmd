@@ -60,7 +60,7 @@ wald.test(b = coef(mylogit.int), Sigma = vcov(mylogit.int), Terms = c(3,4))
 ```
 
 ```{r}
-ggplot(qmatf, aes(x = circ.dist.m, y = FLB,colour=River.Res)) +geom_point() + 
+p <- ggplot(qmatf, aes(x = circ.dist.m, y = FLB,colour=River.Res)) +geom_point() + 
   geom_smooth(formula = y ~ x, method = 'glm', fullrange=TRUE, method.args=list(family=quasibinomial())) +
   xlab("Distance (km)") + ylab("FLB Ancestry (q-value)") + guides(fill=guide_legend(title="New Legend Title")) +
   labs(colour= "Stocking") + scale_colour_discrete(name = "Stocking", labels = c("Reservoir", "River")) +
@@ -68,8 +68,9 @@ ggplot(qmatf, aes(x = circ.dist.m, y = FLB,colour=River.Res)) +geom_point() +
     legend.title = element_text(size = 14),
     axis.title.x = element_text(size = 14),
     axis.title.y = element_text(size = 14),
-    legend.text = element_text(size= 11))
-  
+    legend.text = element_text(size= 11),
+    axis.text = element_text(size=10))
+p
 ```
 
 ## Find distance where Q-valu < 0.06 
